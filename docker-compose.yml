@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+
+  neo4j_db:
+    image: neo4j:latest
+    container_name: neo4j_db
+    env_file:
+      - '.env'
+    ports:
+      - '7474:7474'
+      - '7687:7687'
+    volumes:
+      - 'neo4j_db:/data'
+
+  elasticsearch_db:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+    container_name: elasticsearch_db
+    environment:
+      - node.name=elasticsearch_db
+      - cluster.name=es-docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - '9202:9200'
+    volumes:
+      - 'elasticsearch_db:/data'
+
+  web:
+    build: '.'
+    container_name: flask_neo4j_elasticsearch
+    depends_on:
+      - 'neo4j_db'
+      - 'elasticsearch_db'
+    env_file:
+      - '.env'
+    ports:
+      - '5000:5000'
+    volumes:
+      - '.:/code'
+    links:
+      - 'neo4j_db:neo4j_db'
+      - 'elasticsearch_db:elasticsearch_db'
+
+volumes:
+  neo4j_db:
+  elasticsearch_db:
