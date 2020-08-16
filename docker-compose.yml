@@ -2,50 +2,67 @@ version: '3'
 
 services:
 
-  neo4j_db:
-    image: neo4j:latest
-    container_name: neo4j_db
-    env_file:
-      - '.env'
-    ports:
-      - '7474:7474'
-      - '7687:7687'
-    volumes:
-      - 'neo4j_db:/data'
-
   elasticsearch_db:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+    build:
+      context: .
+      dockerfile: ./elasticsearch/Dockerfile
     container_name: elasticsearch_db
-    environment:
-      - node.name=elasticsearch_db
-      - cluster.name=es-docker-cluster
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    networks:
+      - my_api
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - elasticsearch_db:/usr/share/elasticsearch/data
     ulimits:
       memlock:
         soft: -1
         hard: -1
     ports:
-      - '9202:9200'
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+
+  neo4j_db:
+    image: neo4j:latest
+    container_name: neo4j_db
+    networks:
+      - my_api
+    ports:
+      - 7474:7474
+      - 7687:7687
     volumes:
-      - 'elasticsearch_db:/data'
+      - neo4j_db:/data
 
   web:
-    build: '.'
-    container_name: flask_neo4j_elasticsearch
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    container_name: flask_api
+    environment:
+      - NEO4J_HOST=neo4j_db
+      - NEO4J_PORT=7687
+      - ES_HOST=elasticsearch_db
+      - ES_PORT=9200
+      - ES_INDEX=challenge
+      - BIND_HOST=0.0.0.0
+      - BIND_PORT=5000
+      - IS_DOCKER=true
+    networks:
+      - my_api
     depends_on:
-      - 'neo4j_db'
-      - 'elasticsearch_db'
-    env_file:
-      - '.env'
+      - neo4j_db
+      - elasticsearch_db
     ports:
-      - '5000:5000'
+      - 5000:5000
     volumes:
-      - '.:/code'
+      - ./api:/app
     links:
-      - 'neo4j_db:neo4j_db'
-      - 'elasticsearch_db:elasticsearch_db'
+      - neo4j_db:neo4j_db
+      - elasticsearch_db:elasticsearch_db
 
 volumes:
   neo4j_db:
   elasticsearch_db:
+
+networks:
+  my_api:
