@@ -3,10 +3,13 @@
 ```
 git clone https://github.com/DmndCrow/kazdream_challenge
 cd kazdream_challenge
-pip install -r requirements.txt
 ```
 
-## Чтобы залить данные в дб
+## Чтобы начать работу
 ```
-python script.py
+sudo docker-compose up --build
 ```
+
+### После этого:
+1) Перейти на http://localhost:5000
+

@@ -72,9 +72,11 @@ def upload_to_elasticsearch(
     Function takes dictionaries and upload data to Elasticsearch db
     """
     # initialize connection to Elasticsearch
-    conn = ElasticsearchConn(index=settings.ES_INDEX)
+    print('init es')
+    conn = ElasticsearchConn(host=settings.ES_HOST, port=settings.ES_PORT)
 
     # generate nodes
+    print('build es')
     return conn.build(_people, _organizations)
 
 
@@ -82,6 +84,7 @@ def upload_data():
     # store data from csv file in dictionaries
     people, organizations, memberships = get_csv_data()
     # upload data to DBs
+    print('upload data es')
     res = upload_to_elasticsearch(people, organizations)
     if res:
         upload_to_neo4j(people, organizations, memberships)

@@ -13,5 +13,4 @@ NEO4J_USER = env('NEO4J_USER', default='neo4j')
 NEO4J_PASSWORD = env('NEO4J_PASSWORD', default='test')
 
 ES_HOST = env('ES_HOST', default='localhost')
-ES_PORT = env('ES_PORT', default='9200')
-ES_INDEX = env('ES_INDEX', default='api')
+ES_PORT = env.int('ES_PORT', default=9200)

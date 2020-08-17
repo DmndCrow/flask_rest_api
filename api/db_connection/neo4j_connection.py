@@ -6,12 +6,36 @@ from .models import Person, Organization
 class Neo4jConn:
     def __init__(self, url: str, login: str, password: str):
         self.driver = GraphDatabase.driver(url, auth=(login, password), encrypted=False)
-        print('load neo4j successfully')
         self.session = self.driver.session()
+
+    def create_person(self, person: Person) -> None:
+        self.session.write_transaction(self._create_person, person)
+
+    def create_organization(self, organization: Organization) -> None:
+        self.session.write_transaction(self._create_organization, organization)
+
+    def update_person(self, person: Person) -> None:
+        self.session.write_transaction(self._update_person, person)
+
+    def update_organization(self, organization: Organization) -> None:
+        self.session.write_transaction(self._update_organization, organization)
+
+    def get_person_organization(self, _id):
+        pass
+
+    def get_organization_person(self, _group_id):
+        pass
+
+    def delete_person(self, _id: str) -> None:
+        self.session.write_transaction(self._delete_person, _id)
+
+    def delete_organization(self, _group_id: str) -> None:
+        self.session.write_transaction(self._delete_organization, _group_id)
 
     def build(
             self, people: Dict[str, Person],
-            organization: Dict[str, Organization], memberships: Dict[str, str],
+            organization: Dict[str, Organization],
+            memberships: Dict[str, str],
     ) -> None:
         print('create data')
         self.session.write_transaction(self._create_multiple_people, people)
@@ -19,30 +43,82 @@ class Neo4jConn:
         self.session.write_transaction(self._create_multiple_memberships, memberships)
 
     @staticmethod
+    def _create_person(tx, person: Person) -> None:
+        tx.run(
+            'CREATE (p: Person {'
+            'id: $id, name: $name, alias: $alias, email: $email, nationality: $nationality'
+            '}) RETURN p',
+            id=person.id, name=person.name,
+            email=person.email, alias=person.alias,
+            nationality=person.nationality
+        )
+
+    @staticmethod
+    def _create_organization(tx, organization: Organization) -> None:
+        tx.run(
+            'CREATE (o: Organization {'
+            'group_id: $group_id, name: $name'
+            '}) RETURN o',
+            group_id=organization.group_id, name=organization.name,
+        )
+
+    @staticmethod
+    def _update_person(tx, person: Person) -> None:
+        tx.run(
+            'MATCH (p: Person {id: $id}) '
+            'SET p = {id: $id, name: $name, alias: $alias, email: $email, nationality: $nationality} '
+            'RETURN p',
+            id=person.id, name=person.name,
+            email=person.email, alias=person.alias,
+            nationality=person.nationality
+        )
+
+    @staticmethod
+    def _update_organization(tx, organization: Organization) -> None:
+        tx.run(
+            'MATCH (o: Organization {group_id: $group_id}) '
+            'SET o = {group_id: $group_id, name: $name} '
+            'RETURN o',
+            group_id=organization.group_id, name=organization.name,
+        )
+
+    @staticmethod
+    def _delete_person(tx, _id: str) -> None:
+        tx.run(
+            'MATCH (p: Person {id: $id}) DETACH DELETE p', id=_id
+        )
+
+    @staticmethod
+    def _delete_organization(tx, _group_id: str) -> None:
+        tx.run(
+            'MATCH (p: Organization {group_id: $group_id}) DETACH DELETE p', group_id=_group_id
+        )
+
+    @staticmethod
     def _create_multiple_people(tx, people: Dict[str, Person]) -> None:
         for key in people:
             person = people[key]
             res = tx.run(
-                'MERGE (p: Person {'
+                'CREATE (p: Person {'
                 'id: $id, name: $name, alias: $alias, email: $email, nationality: $nationality'
-                '}) return p',
+                '}) RETURN p',
                 id=person.id, name=person.name,
                 email=person.email, alias=person.alias,
                 nationality=person.nationality
             )
-            print([record.value() for record in res])
+            print('neo4j create', person.name)
 
     @staticmethod
     def _create_multiple_organizations(tx, organizations: Dict[str, Organization]) -> None:
         for key in organizations:
             organization = organizations[key]
             res = tx.run(
-                'MERGE (o: Organization {'
+                'CREATE (o: Organization {'
                 'group_id: $group_id, name: $name'
-                '}) return o',
+                '}) RETURN o',
                 group_id=organization.group_id, name=organization.name,
             )
-            print([record.value() for record in res])
+            print('neo4j create', organization.name)
 
     @staticmethod
     def _create_multiple_memberships(tx, memberships: Dict[str, str]) -> None:
@@ -56,9 +132,12 @@ class Neo4jConn:
             )
 
     @staticmethod
-    def _is_empty_db(tx) -> int:
-        res = tx.run('MATCH (n) return count(n)')
-        return [record.value() for record in res][0]
+    def _get_person_organization(tx, _id: str) -> List[any]:
+        pass
+
+    @staticmethod
+    def _get_organization_person(tx, _group_id: str) -> List[any]:
+        pass
 
     def close(self):
         self.driver.close()
