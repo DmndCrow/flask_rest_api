@@ -1,15 +1,17 @@
-# Тестовое задания для Kazdream
+# Kazdream challenge
 
 ```
 git clone https://github.com/DmndCrow/kazdream_challenge
 cd kazdream_challenge
 ```
 
-## Чтобы начать работу
+## To start service
 ```
 sudo docker-compose up --build
 ```
 
-### После этого:
-1) Перейти на http://localhost:5000
+* API will run on http://localhosts:5000/
+
+# Notice
+1) Документация находится в папке ```./api/README.md```
 

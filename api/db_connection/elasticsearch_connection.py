@@ -76,6 +76,13 @@ class ElasticsearchConn:
         return [record['_source'] for record in es_response], 200
 
     def update_person(self, person: Person) -> int:
+        """
+        Update person by using person
+        @param person: all params of the to be updated person
+        @type person: Person
+        @return: status code
+        @rtype: int
+        """
         res, code = self.get_person_by_id(person.id)
         if code == 200:
             self.es.update(
@@ -88,6 +95,13 @@ class ElasticsearchConn:
         return 404
 
     def update_organization(self, organization: Organization) -> int:
+        """
+        Update organization by using organization
+        @param organization: all params of the to be updated organization
+        @type organization: Organization
+        @return: status code
+        @rtype: int
+        """
         res, code = self.get_organization_by_group_id(organization.group_id)
         if code == 200:
             self.es.update(
@@ -100,6 +114,13 @@ class ElasticsearchConn:
         return 404
 
     def delete_person(self, _id: str) -> int:
+        """
+        Try to delete person using _id
+        @param _id: person.id
+        @type _id: str
+        @return: status code
+        @rtype: int
+        """
         try:
             self.es.delete(index='person', doc_type=self.doc, id=_id)
             return 200
@@ -107,29 +128,31 @@ class ElasticsearchConn:
             return 404
 
     def delete_organization(self, _group_id: str) -> int:
+        """
+        Try to delete organization using _group_id
+        @param _group_id: organization.group_id
+        @type _group_id: str
+        @return: status code
+        @rtype: int
+        """
         try:
             self.es.delete(index='organization', doc_type=self.doc, id=_group_id)
         except:
             return 404
 
     def create_person(self, person: Person) -> Person:
+        """
+        Create new person
+        @param person: to be created Person
+        @type person: Person
+        @return: created person
+        @rtype: Person
+        """
         index = 'person'
+        # make sure id of the to be created person is unique
         while True:
-            query = {
-                'query': {
-                    'multi_match': {
-                        'query': person.id,
-                        'fields': ['id']
-                    }
-                }
-            }
-            es_response = helpers.scan(
-                self.es,
-                index=index,
-                doc_type=self.doc,
-                query=query
-            )
-            if len([record['_source'] for record in es_response]) == 0:
+            res, code = self.get_person_by_id(person.id)
+            if code == 404:
                 break
             else:
                 person.id = str(uuid.uuid4())
@@ -144,23 +167,19 @@ class ElasticsearchConn:
         return person
 
     def create_organization(self, organization: Organization) -> Organization:
+        """
+        Create new organization
+        @param organization: to be created Organization
+        @type organization: Organization
+        @return: created organization
+        @rtype: Organization
+        """
         index = 'organization'
+        # make sure id of the to be created organization is unique
         while True:
-            query = {
-                'query': {
-                    'multi_match': {
-                        'query': organization.group_id,
-                        'fields': ['group_id']
-                    }
-                }
-            }
-            es_response = helpers.scan(
-                self.es,
-                index=index,
-                doc_type=self.doc,
-                query=query
-            )
-            if len([record['_source'] for record in es_response]) == 0:
+            res, code = self.get_organization_by_group_id(organization.group_id)
+
+            if code == 404:
                 break
             else:
                 organization.group_id = str(uuid.uuid4())
