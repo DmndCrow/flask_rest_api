@@ -32,6 +32,8 @@ services:
       - 7687:7687
     volumes:
       - neo4j_db:/data
+    environment:
+      - NEO4J_AUTH=none
 
   web:
     build:

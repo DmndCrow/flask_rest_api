@@ -118,10 +118,62 @@ def api_handle_organization_by_group_id(_group_id: str):
         return _return_405_error()
 
 
-@api.route('/api/membership/person/<_id>', methods=['GET'])
+@api.route('/api/membership/person/<_id>', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 def api_handle_membership_by_person_id(_id: str):
     if request.method == 'GET':
-        return jsonify({'message': 'get organization with person_id=' + _id}), 200
+        # find person by id
+        res, code = es_conn.get_person_by_id(_id)
+        # check whether person with given id exists
+        if code == 200:
+            # get organization
+            res = neorj_conn.get_person_organization(_id)
+        return jsonify({'message': res}), code
+    elif request.method == 'POST':
+        # to be sure we have new group_id to connect
+        if 'group_id' in request.json:
+            # find person with given id
+            _, person_code = es_conn.get_person_by_id(_id)
+            # and find org with given group_id from request body
+            _, org_code = es_conn.get_organization_by_group_id(request.json['group_id'])
+            if person_code and org_code:
+                # try to make relation
+                res, code = neorj_conn.create_membership(_id, request.json['group_id'])
+                return jsonify({'message': res}), code
+            else:
+                return jsonify({'message': 'No person or organization'}), 404
+        else:
+            return jsonify({'message': {'Group id is not provided'}}), 404
+    elif request.method in ['PUT', 'PATCH']:
+        # check if request body has new group id
+        if 'group_id' in request.json:
+            # find person by id
+            _, person_code = es_conn.get_person_by_id(_id)
+            print(person_code, 'person')
+            # and find org by new group id
+            _, org_code = es_conn.get_organization_by_group_id(request.json['group_id'])
+            print(org_code, 'org')
+            if person_code == 200 and org_code == 200:
+                # get current org of a person
+                org = neorj_conn.get_person_organization(_id)
+                print(org, 'org1')
+                # if there is one org that person belongs to, remove relation
+                if len(org):
+                    print('delete')
+                    neorj_conn.delete_membership(_id)
+                # create new membership
+                print('create')
+                res, code = neorj_conn.create_membership(_id, request.json['group_id'])
+                return jsonify({'message': res}), code
+            return jsonify({'message': []}), 404
+        else:
+            return jsonify({'message': {'Group id is not provided'}}), 404
+    elif request.method == 'DELETE':
+        res, code = es_conn.get_person_by_id(_id)
+        org = neorj_conn.get_person_organization(_id)
+        if code == 200 and len(org):
+            res, code = neorj_conn.delete_membership(_id)
+            return jsonify({'message', res}), code
+        return jsonify({'message': 'No such user or relation with org'}), 404
     else:
         return _return_405_error()
 
@@ -129,6 +181,7 @@ def api_handle_membership_by_person_id(_id: str):
 @api.route('/api/membership/organization/<_group_id>', methods=['GET'])
 def api_handle_membership_by_group_id(_group_id: str):
     if request.method == 'GET':
-        return jsonify({'message': 'get organization with person_id=' + _group_id}), 200
+        res = neorj_conn.get_organization_person(_group_id)
+        return jsonify({'message': res}), 200
     else:
         return _return_405_error()

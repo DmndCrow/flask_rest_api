@@ -8,6 +8,6 @@ RUN pip install -r requirements.txt
 RUN ["chmod", "+x", "/app/wait-for.sh"]
 
 CMD echo "Waiting for $NEO4J_HOST:$NEO4J_PORT and $ES_HOST:$ES_PORT ..." && \
-    /app/wait-for.sh -t 75 $NEO4J_HOST:$NEO4J_PORT && \
-    sleep 15 && \
+    /app/wait-for.sh -t 100 $NEO4J_HOST:$NEO4J_PORT && \
+    sleep 30 && \
     python app.py
