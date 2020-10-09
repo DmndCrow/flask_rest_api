@@ -1,4 +1,4 @@
-# Kazdream challenge
+# Flask Rest API
 
 ```
 git clone https://github.com/DmndCrow/kazdream_challenge
